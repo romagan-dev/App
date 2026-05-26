@@ -5,117 +5,108 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 
-import CatalogScreen from '../screens/CatalogScreen';
-import AddBookScreen from '../screens/AddBookScreen';
-import SettingsScreen from '../screens/SettingsScreen';
+import CatalogScreen    from '../screens/CatalogScreen';
+import AddBookScreen    from '../screens/AddBookScreen';
+import SettingsScreen   from '../screens/SettingsScreen';
 import BookDetailScreen from '../screens/BookDetailScreen';
+import PostsScreen      from '../screens/PostsScreen';
+import PostDetailScreen from '../screens/PostDetailScreen';
 
-const Tab = createBottomTabNavigator();
+const Tab          = createBottomTabNavigator();
 const CatalogStack = createNativeStackNavigator();
+const PostsStack   = createNativeStackNavigator();
 
-// ─── Іконка таба ───
 const TabIcon = ({ emoji, label, focused, color }) => (
-  <View style={styles.tabIconWrapper}>
-    <Text style={[styles.tabEmoji, { opacity: focused ? 1 : 0.5 }]}>{emoji}</Text>
+  <View style={styles.tabIcon}>
+    <Text style={[styles.tabEmoji, { opacity: focused ? 1 : 0.45 }]}>{emoji}</Text>
     <Text style={[styles.tabLabel, { color }]}>{label}</Text>
   </View>
 );
 
-// ─── Вкладений Stack для каталогу (Catalog → Detail) ───
-function CatalogStackNavigator() {
+// Stack: Каталог → Деталі книги
+function CatalogStackNav() {
   const { theme } = useTheme();
+  const stackOpts = {
+    headerStyle: { backgroundColor: theme.headerBg },
+    headerTintColor: theme.headerText,
+    headerTitleStyle: { fontWeight: '700', fontSize: 17 },
+    headerShadowVisible: false,
+    animation: 'slide_from_right',
+  };
   return (
-    <CatalogStack.Navigator
-      screenOptions={{
-        headerStyle: { backgroundColor: theme.headerBg },
-        headerTintColor: theme.headerText,
-        headerTitleStyle: { fontWeight: '700', fontSize: 18 },
-        headerShadowVisible: false,
-        animation: 'slide_from_right',
-      }}
-    >
-      <CatalogStack.Screen
-        name="CatalogList"
-        component={CatalogScreen}
-        options={{ title: '📚 Каталог книг' }}
-      />
-      <CatalogStack.Screen
-        name="BookDetail"
-        component={BookDetailScreen}
-        options={({ route }) => ({
-          title: route.params?.title ?? 'Деталі',
-          headerBackTitle: 'Назад',
-        })}
-      />
+    <CatalogStack.Navigator screenOptions={stackOpts}>
+      <CatalogStack.Screen name="CatalogList" component={CatalogScreen} options={{ title: '📚 Каталог книг' }} />
+      <CatalogStack.Screen name="BookDetail"  component={BookDetailScreen}
+        options={({ route }) => ({ title: route.params?.title ?? 'Деталі', headerBackTitle: 'Назад' })} />
     </CatalogStack.Navigator>
   );
 }
 
-// ─── Головний Tab Navigator (пункт 4) ───
+// Stack: Пости → Деталі поста (пункт 3 + 5)
+function PostsStackNav() {
+  const { theme } = useTheme();
+  const stackOpts = {
+    headerStyle: { backgroundColor: theme.headerBg },
+    headerTintColor: theme.headerText,
+    headerTitleStyle: { fontWeight: '700', fontSize: 17 },
+    headerShadowVisible: false,
+    animation: 'slide_from_right',
+  };
+  return (
+    <PostsStack.Navigator screenOptions={stackOpts}>
+      <PostsStack.Screen name="PostsList"  component={PostsScreen}      options={{ title: '📰 Пости' }} />
+      <PostsStack.Screen name="PostDetail" component={PostDetailScreen}
+        options={({ route }) => ({ title: route.params?.title ? route.params.title.slice(0, 24) + '…' : 'Деталі', headerBackTitle: 'Назад' })} />
+    </PostsStack.Navigator>
+  );
+}
+
 export default function MainNavigator() {
   const { theme } = useTheme();
-  const { user } = useAuth();
+  const { user }  = useAuth();
 
   return (
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
-        tabBarStyle: {
-          backgroundColor: theme.card,
-          borderTopColor: theme.border,
-          borderTopWidth: 1,
-          height: 70,
-          paddingBottom: 10,
-        },
-        tabBarActiveTintColor: theme.primary,
+        tabBarStyle: { backgroundColor: theme.card, borderTopColor: theme.border, height: 68, paddingBottom: 8 },
+        tabBarActiveTintColor:   theme.primary,
         tabBarInactiveTintColor: theme.subtext,
         tabBarShowLabel: false,
       }}
     >
-      <Tab.Screen
-        name="Catalog"
-        component={CatalogStackNavigator}
+      <Tab.Screen name="Catalog" component={CatalogStackNav}
+        options={{ tabBarIcon: p => <TabIcon emoji="📚" label="Каталог" {...p} /> }} />
+
+      {/* Пункт 3: четвертий екран — Пости */}
+      <Tab.Screen name="Posts" component={PostsStackNav}
+        options={{ tabBarIcon: p => <TabIcon emoji="📰" label="Пости" {...p} /> }} />
+
+      <Tab.Screen name="Add" component={AddBookScreen}
         options={{
-          tabBarIcon: ({ focused, color }) => (
-            <TabIcon emoji="📚" label="Каталог" focused={focused} color={color} />
-          ),
-        }}
-      />
-      <Tab.Screen
-        name="Add"
-        component={AddBookScreen}
-        options={{
-          // Цей таб має власний header
           headerShown: true,
-          headerTitle: '➕ Додати книгу',
+          headerTitle: '➕ Нова книга',
           headerStyle: { backgroundColor: theme.headerBg },
           headerTintColor: theme.headerText,
           headerTitleStyle: { fontWeight: '700' },
-          tabBarIcon: ({ focused, color }) => (
-            <TabIcon emoji="➕" label="Додати" focused={focused} color={color} />
-          ),
-        }}
-      />
-      <Tab.Screen
-        name="Settings"
-        component={SettingsScreen}
+          tabBarIcon: p => <TabIcon emoji="➕" label="Додати" {...p} />,
+        }} />
+
+      <Tab.Screen name="Settings" component={SettingsScreen}
         options={{
           headerShown: true,
-          headerTitle: `⚙️ ${user?.name ?? 'Налаштування'}`,
+          headerTitle: `⚙️ ${user?.name ?? 'Профіль'}`,
           headerStyle: { backgroundColor: theme.headerBg },
           headerTintColor: theme.headerText,
           headerTitleStyle: { fontWeight: '700' },
-          tabBarIcon: ({ focused, color }) => (
-            <TabIcon emoji="⚙️" label="Профіль" focused={focused} color={color} />
-          ),
-        }}
-      />
+          tabBarIcon: p => <TabIcon emoji="⚙️" label="Профіль" {...p} />,
+        }} />
     </Tab.Navigator>
   );
 }
 
 const styles = StyleSheet.create({
-  tabIconWrapper: { alignItems: 'center', justifyContent: 'center', paddingTop: 6 },
+  tabIcon:  { alignItems: 'center', paddingTop: 5 },
   tabEmoji: { fontSize: 22 },
-  tabLabel: { fontSize: 10, marginTop: 3 },
+  tabLabel: { fontSize: 10, marginTop: 2 },
 });

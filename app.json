@@ -1,29 +1,42 @@
 {
   "expo": {
-    "name": "MyProject",
-    "slug": "MyProject",
+    "name": "BookApp",
+    "slug": "bookapp",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
-    "newArchEnabled": true,
+    "userInterfaceStyle": "automatic",
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#3F51B5"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": false,
+      "bundleIdentifier": "com.bookapp.app",
+      "infoPlist": {
+        "NSCalendarsUsageDescription": "BookApp використовує календар для збереження нагадувань про книги та пости.",
+        "NSPhotoLibraryUsageDescription": "BookApp використовує галерею для прикріплення фото до постів.",
+        "NSCameraUsageDescription": "BookApp використовує камеру для зйомки фото до постів."
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#3F51B5"
       },
-      "edgeToEdgeEnabled": true
+      "package": "com.bookapp.app",
+      "permissions": [
+        "READ_CALENDAR",
+        "WRITE_CALENDAR",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "CAMERA"
+      ]
     },
-    "web": {
-      "favicon": "./assets/favicon.png"
-    }
+    "plugins": [
+      "expo-calendar",
+      "expo-image-picker"
+    ]
   }
 }

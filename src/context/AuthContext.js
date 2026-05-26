@@ -1,11 +1,11 @@
 import React, { createContext, useContext, useState } from 'react';
 
-// ─── Заздалегідь задані користувачі (пункт 3) ───
-export const USERS = [
+// ─── Всі користувачі задані в коді (пункт 2) ───
+export const LOCAL_USERS = [
   {
     id: '1',
     username: 'admin',
-    password: '1234',
+    password: 'admin123',
     name: 'Олексій Мельник',
     email: 'admin@bookapp.ua',
     role: 'Адміністратор',
@@ -15,7 +15,7 @@ export const USERS = [
   {
     id: '2',
     username: 'user',
-    password: 'qwerty',
+    password: 'user123',
     name: 'Марія Коваленко',
     email: 'maria@bookapp.ua',
     role: 'Читач',
@@ -25,7 +25,7 @@ export const USERS = [
   {
     id: '3',
     username: 'test',
-    password: 'test',
+    password: 'test123',
     name: 'Іван Петренко',
     email: 'ivan@bookapp.ua',
     role: 'Редактор',
@@ -34,34 +34,48 @@ export const USERS = [
   },
 ];
 
-// ─── Контекст (пункт 6) ───
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
+  const [user, setUser]       = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError]     = useState('');
 
-  const login = (username, password) => {
-    const found = USERS.find(
-      (u) => u.username === username.trim() && u.password === password
+  const login = async (username, password) => {
+    setLoading(true);
+    setError('');
+
+    // Імітація мережевого запиту (як ніби йде до API)
+    await new Promise(r => setTimeout(r, 600));
+
+    const found = LOCAL_USERS.find(
+      u =>
+        u.username.toLowerCase() === username.trim().toLowerCase() &&
+        u.password === password.trim()
     );
+
     if (found) {
       setUser(found);
+      setLoading(false);
       return { success: true };
     }
-    return { success: false, error: 'Невірний логін або пароль' };
+
+    const msg = 'Невірний логін або пароль';
+    setError(msg);
+    setLoading(false);
+    return { success: false, error: msg };
   };
 
-  const logout = () => setUser(null);
+  const logout = () => {
+    setUser(null);
+    setError('');
+  };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout }}>
+    <AuthContext.Provider value={{ user, login, logout, loading, error }}>
       {children}
     </AuthContext.Provider>
   );
 };
 
-export const useAuth = () => {
-  const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error('useAuth must be used inside AuthProvider');
-  return ctx;
-};
+export const useAuth = () => useContext(AuthContext);
