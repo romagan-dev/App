@@ -1,9 +1,9 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { createBottomTabNavigator }   from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { useTheme } from '../context/ThemeContext';
-import { useAuth } from '../context/AuthContext';
+import { useSettingsStore } from '../store/useSettingsStore';
+import { useAuthStore }     from '../store/useAuthStore';
 
 import CatalogScreen    from '../screens/CatalogScreen';
 import AddBookScreen    from '../screens/AddBookScreen';
@@ -17,96 +17,57 @@ const CatalogStack = createNativeStackNavigator();
 const PostsStack   = createNativeStackNavigator();
 
 const TabIcon = ({ emoji, label, focused, color }) => (
-  <View style={styles.tabIcon}>
-    <Text style={[styles.tabEmoji, { opacity: focused ? 1 : 0.45 }]}>{emoji}</Text>
-    <Text style={[styles.tabLabel, { color }]}>{label}</Text>
+  <View style={styles.icon}>
+    <Text style={{ fontSize: 22, opacity: focused ? 1 : 0.45 }}>{emoji}</Text>
+    <Text style={{ fontSize: 10, color, marginTop: 2 }}>{label}</Text>
   </View>
 );
 
-// Stack: Каталог → Деталі книги
 function CatalogStackNav() {
-  const { theme } = useTheme();
-  const stackOpts = {
-    headerStyle: { backgroundColor: theme.headerBg },
-    headerTintColor: theme.headerText,
-    headerTitleStyle: { fontWeight: '700', fontSize: 17 },
-    headerShadowVisible: false,
-    animation: 'slide_from_right',
-  };
+  const { isDark } = useSettingsStore();
+  const hBg = isDark ? '#1A1A2E' : '#3F51B5';
+  const opts = { headerStyle: { backgroundColor: hBg }, headerTintColor: '#fff', headerTitleStyle: { fontWeight: '700' }, headerShadowVisible: false };
   return (
-    <CatalogStack.Navigator screenOptions={stackOpts}>
-      <CatalogStack.Screen name="CatalogList" component={CatalogScreen} options={{ title: '📚 Каталог книг' }} />
-      <CatalogStack.Screen name="BookDetail"  component={BookDetailScreen}
-        options={({ route }) => ({ title: route.params?.title ?? 'Деталі', headerBackTitle: 'Назад' })} />
+    <CatalogStack.Navigator screenOptions={opts}>
+      <CatalogStack.Screen name="CatalogList"  component={CatalogScreen}    options={{ title: '📚 Каталог книг' }} />
+      <CatalogStack.Screen name="BookDetail"   component={BookDetailScreen} options={({ route }) => ({ title: route.params?.title?.slice(0,20) ?? 'Деталі' })} />
     </CatalogStack.Navigator>
   );
 }
 
-// Stack: Пости → Деталі поста (пункт 3 + 5)
 function PostsStackNav() {
-  const { theme } = useTheme();
-  const stackOpts = {
-    headerStyle: { backgroundColor: theme.headerBg },
-    headerTintColor: theme.headerText,
-    headerTitleStyle: { fontWeight: '700', fontSize: 17 },
-    headerShadowVisible: false,
-    animation: 'slide_from_right',
-  };
+  const { isDark } = useSettingsStore();
+  const hBg = isDark ? '#1A1A2E' : '#3F51B5';
+  const opts = { headerStyle: { backgroundColor: hBg }, headerTintColor: '#fff', headerTitleStyle: { fontWeight: '700' }, headerShadowVisible: false };
   return (
-    <PostsStack.Navigator screenOptions={stackOpts}>
+    <PostsStack.Navigator screenOptions={opts}>
       <PostsStack.Screen name="PostsList"  component={PostsScreen}      options={{ title: '📰 Пости' }} />
-      <PostsStack.Screen name="PostDetail" component={PostDetailScreen}
-        options={({ route }) => ({ title: route.params?.title ? route.params.title.slice(0, 24) + '…' : 'Деталі', headerBackTitle: 'Назад' })} />
+      <PostsStack.Screen name="PostDetail" component={PostDetailScreen} options={({ route }) => ({ title: (route.params?.title ?? 'Деталі').slice(0,22) + '…' })} />
     </PostsStack.Navigator>
   );
 }
 
 export default function MainNavigator() {
-  const { theme } = useTheme();
-  const { user }  = useAuth();
+  const { isDark } = useSettingsStore();
+  const { user }   = useAuthStore();
+  const hBg = isDark ? '#1A1A2E' : '#3F51B5';
 
   return (
-    <Tab.Navigator
-      screenOptions={{
-        headerShown: false,
-        tabBarStyle: { backgroundColor: theme.card, borderTopColor: theme.border, height: 68, paddingBottom: 8 },
-        tabBarActiveTintColor:   theme.primary,
-        tabBarInactiveTintColor: theme.subtext,
-        tabBarShowLabel: false,
-      }}
-    >
-      <Tab.Screen name="Catalog" component={CatalogStackNav}
-        options={{ tabBarIcon: p => <TabIcon emoji="📚" label="Каталог" {...p} /> }} />
-
-      {/* Пункт 3: четвертий екран — Пости */}
-      <Tab.Screen name="Posts" component={PostsStackNav}
-        options={{ tabBarIcon: p => <TabIcon emoji="📰" label="Пости" {...p} /> }} />
-
-      <Tab.Screen name="Add" component={AddBookScreen}
-        options={{
-          headerShown: true,
-          headerTitle: '➕ Нова книга',
-          headerStyle: { backgroundColor: theme.headerBg },
-          headerTintColor: theme.headerText,
-          headerTitleStyle: { fontWeight: '700' },
-          tabBarIcon: p => <TabIcon emoji="➕" label="Додати" {...p} />,
-        }} />
-
+    <Tab.Navigator screenOptions={{
+      headerShown: false,
+      tabBarStyle: { backgroundColor: isDark ? '#1C1C1E' : '#fff', borderTopColor: isDark ? '#333' : '#E0E0E0', height: 68, paddingBottom: 8 },
+      tabBarActiveTintColor: '#3F51B5',
+      tabBarInactiveTintColor: isDark ? '#888' : '#999',
+      tabBarShowLabel: false,
+    }}>
+      <Tab.Screen name="Catalog"  component={CatalogStackNav} options={{ tabBarIcon: p => <TabIcon emoji="📚" label="Каталог" {...p} /> }} />
+      <Tab.Screen name="Posts"    component={PostsStackNav}   options={{ tabBarIcon: p => <TabIcon emoji="📰" label="Пости"   {...p} /> }} />
+      <Tab.Screen name="Add"      component={AddBookScreen}
+        options={{ headerShown: true, headerTitle: '➕ Нова книга', headerStyle: { backgroundColor: hBg }, headerTintColor: '#fff', headerTitleStyle: { fontWeight: '700' }, tabBarIcon: p => <TabIcon emoji="➕" label="Додати" {...p} /> }} />
       <Tab.Screen name="Settings" component={SettingsScreen}
-        options={{
-          headerShown: true,
-          headerTitle: `⚙️ ${user?.name ?? 'Профіль'}`,
-          headerStyle: { backgroundColor: theme.headerBg },
-          headerTintColor: theme.headerText,
-          headerTitleStyle: { fontWeight: '700' },
-          tabBarIcon: p => <TabIcon emoji="⚙️" label="Профіль" {...p} />,
-        }} />
+        options={{ headerShown: true, headerTitle: `⚙️ ${user?.name ?? 'Профіль'}`, headerStyle: { backgroundColor: hBg }, headerTintColor: '#fff', headerTitleStyle: { fontWeight: '700' }, tabBarIcon: p => <TabIcon emoji="⚙️" label="Профіль" {...p} /> }} />
     </Tab.Navigator>
   );
 }
 
-const styles = StyleSheet.create({
-  tabIcon:  { alignItems: 'center', paddingTop: 5 },
-  tabEmoji: { fontSize: 22 },
-  tabLabel: { fontSize: 10, marginTop: 2 },
-});
+const styles = StyleSheet.create({ icon: { alignItems: 'center', paddingTop: 5 } });

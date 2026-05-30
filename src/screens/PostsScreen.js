@@ -4,12 +4,19 @@ import {
   StyleSheet, ActivityIndicator, RefreshControl, TextInput,
 } from 'react-native';
 import { usePosts } from '../hooks/UsePosts';
-import { useTheme } from '../context/ThemeContext';
+import { useSettingsStore } from '../store/useSettingsStore';
 
 // ─── Пункт 3 + 4: четвертий екран з API + React Query кешуванням ───
 export default function PostsScreen({ navigation }) {
-  const { theme } = useTheme();
-  const { data: posts, isLoading, isError, refetch, isFetching, dataUpdatedAt } = usePosts();
+const isDark = useSettingsStore(s => s.isDark);
+const theme = {
+  bg: isDark ? '#0D0D0D' : '#F0F2F5',
+  card: isDark ? '#1C1C1E' : '#FFFFFF',
+  text: isDark ? '#FFF' : '#1A1A2E',
+  subtext: isDark ? '#AAA' : '#666',
+  border: isDark ? '#333' : '#E0E0E0',
+  primary: '#3F51B5',
+};  const { data: posts, isLoading, isError, refetch, isFetching, dataUpdatedAt } = usePosts();
   const [search, setSearch] = useState('');
 
   const filtered = (posts ?? []).filter(p =>

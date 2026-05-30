@@ -6,13 +6,19 @@ import {
 import * as Calendar from 'expo-calendar';
 import * as ImagePicker from 'expo-image-picker';
 import { usePostDetail } from '../hooks/UsePosts';
-import { useTheme } from '../context/ThemeContext';
-
+import { useSettingsStore } from '../store/useSettingsStore';
 // ─── Пункт 5 + 6: детальний екран поста з нативними можливостями ───
 export default function PostDetailScreen({ route }) {
   const { postId } = route.params;
-  const { theme } = useTheme();
-  const { data, isLoading, isError } = usePostDetail(postId);
+const isDark = useSettingsStore(s => s.isDark);
+const theme = {
+  bg: isDark ? '#0D0D0D' : '#F0F2F5',
+  card: isDark ? '#1C1C1E' : '#FFFFFF',
+  text: isDark ? '#FFF' : '#1A1A2E',
+  subtext: isDark ? '#AAA' : '#666',
+  border: isDark ? '#333' : '#E0E0E0',
+  primary: '#3F51B5',
+};  const { data, isLoading, isError } = usePostDetail(postId);
 
   const [calendarSaved, setCalendarSaved] = useState(false);
   const [eventId, setEventId]             = useState(null);
