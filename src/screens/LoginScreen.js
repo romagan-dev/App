@@ -5,17 +5,34 @@ import {
 } from 'react-native';
 import { useAuthStore, LOCAL_USERS } from '../store/useAuthStore';
 
+// ─── Пункт 6d: анімований splash/loading при вході ───
 export default function LoginScreen() {
   const { login, loading, error, clearError } = useAuthStore();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPass, setShowPass] = useState(false);
 
-  const shakeAnim = useRef(new Animated.Value(0)).current;
-  const fadeAnim  = useRef(new Animated.Value(0)).current;
+  // Анімації
+  const logoScale   = useRef(new Animated.Value(0)).current;
+  const logoOpacity = useRef(new Animated.Value(0)).current;
+  const formSlide   = useRef(new Animated.Value(60)).current;
+  const formOpacity = useRef(new Animated.Value(0)).current;
+  const demoOpacity = useRef(new Animated.Value(0)).current;
+  const shakeAnim   = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    Animated.timing(fadeAnim, { toValue: 1, duration: 700, useNativeDriver: true }).start();
+    // Послідовна анімація появи: лого → форма → демо
+    Animated.sequence([
+      Animated.parallel([
+        Animated.spring(logoScale,   { toValue: 1, tension: 50, friction: 7, useNativeDriver: true }),
+        Animated.timing(logoOpacity, { toValue: 1, duration: 500, useNativeDriver: true }),
+      ]),
+      Animated.parallel([
+        Animated.timing(formSlide,   { toValue: 0, duration: 400, useNativeDriver: true }),
+        Animated.timing(formOpacity, { toValue: 1, duration: 400, useNativeDriver: true }),
+      ]),
+      Animated.timing(demoOpacity,   { toValue: 1, duration: 300, useNativeDriver: true }),
+    ]).start();
   }, []);
 
   useEffect(() => {
@@ -24,11 +41,11 @@ export default function LoginScreen() {
 
   const shake = () =>
     Animated.sequence([
-      Animated.timing(shakeAnim, { toValue: 10,  duration: 55, useNativeDriver: true }),
-      Animated.timing(shakeAnim, { toValue: -10, duration: 55, useNativeDriver: true }),
-      Animated.timing(shakeAnim, { toValue: 6,   duration: 55, useNativeDriver: true }),
-      Animated.timing(shakeAnim, { toValue: -6,  duration: 55, useNativeDriver: true }),
-      Animated.timing(shakeAnim, { toValue: 0,   duration: 55, useNativeDriver: true }),
+      Animated.timing(shakeAnim, { toValue: 12,  duration: 60, useNativeDriver: true }),
+      Animated.timing(shakeAnim, { toValue: -12, duration: 60, useNativeDriver: true }),
+      Animated.timing(shakeAnim, { toValue: 8,   duration: 60, useNativeDriver: true }),
+      Animated.timing(shakeAnim, { toValue: -8,  duration: 60, useNativeDriver: true }),
+      Animated.timing(shakeAnim, { toValue: 0,   duration: 60, useNativeDriver: true }),
     ]).start();
 
   const handleLogin = async () => {
@@ -37,25 +54,27 @@ export default function LoginScreen() {
     await login(username, password);
   };
 
-  const fill = (u) => {
-    setUsername(u.username);
-    setPassword(u.password);
-    clearError();
-  };
+  const fill = (u) => { setUsername(u.username); setPassword(u.password); clearError(); };
 
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
 
-        <Animated.View style={[styles.logoWrap, { opacity: fadeAnim }]}>
-          <View style={styles.logoCircle}><Text style={styles.logoEmoji}>📚</Text></View>
+        {/* Анімований логотип */}
+        <Animated.View style={[styles.logoWrap, { opacity: logoOpacity, transform: [{ scale: logoScale }] }]}>
+          <View style={styles.logoCircle}>
+            <Text style={styles.logoEmoji}>📚</Text>
+          </View>
           <Text style={styles.appName}>BookApp</Text>
           <Text style={styles.tagline}>Ваша цифрова бібліотека</Text>
         </Animated.View>
 
-        <Animated.View style={[styles.card, { transform: [{ translateX: shakeAnim }] }]}>
+        {/* Анімована форма */}
+        <Animated.View style={[
+          styles.card,
+          { opacity: formOpacity, transform: [{ translateY: formSlide }, { translateX: shakeAnim }] }
+        ]}>
           <Text style={styles.cardTitle}>Вхід до системи</Text>
-
           {error ? (
             <View style={styles.errorBox}><Text style={styles.errorText}>⚠️ {error}</Text></View>
           ) : null}
@@ -72,8 +91,7 @@ export default function LoginScreen() {
           <View style={styles.passRow}>
             <TextInput
               style={[styles.input, { flex: 1, marginBottom: 0 }]}
-              value={password}
-              onChangeText={t => { setPassword(t); clearError(); }}
+              value={password} onChangeText={t => { setPassword(t); clearError(); }}
               placeholder="Введіть пароль" placeholderTextColor="#aaa"
               secureTextEntry={!showPass} autoCapitalize="none" autoCorrect={false}
             />
@@ -93,19 +111,22 @@ export default function LoginScreen() {
           </TouchableOpacity>
         </Animated.View>
 
-        <Text style={styles.demoTitle}>Натисніть для швидкого входу</Text>
-        {LOCAL_USERS.map(u => (
-          <TouchableOpacity key={u.id} style={styles.demoCard} onPress={() => fill(u)} activeOpacity={0.7}>
-            <View style={[styles.demoAvatar, { backgroundColor: u.avatarColor }]}>
-              <Text style={styles.demoAvatarText}>{u.avatar}</Text>
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.demoName}>{u.name}</Text>
-              <Text style={styles.demoCreds}>{u.username} / {u.password} · {u.role}</Text>
-            </View>
-            <Text style={{ color: '#3F51B5', fontSize: 22 }}>›</Text>
-          </TouchableOpacity>
-        ))}
+        {/* Анімовані демо-акаунти */}
+        <Animated.View style={{ opacity: demoOpacity }}>
+          <Text style={styles.demoTitle}>Натисніть для швидкого входу</Text>
+          {LOCAL_USERS.map((u, i) => (
+            <TouchableOpacity key={u.id} style={styles.demoCard} onPress={() => fill(u)} activeOpacity={0.7}>
+              <View style={[styles.demoAvatar, { backgroundColor: u.avatarColor }]}>
+                <Text style={styles.demoAvatarText}>{u.avatar}</Text>
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.demoName}>{u.name}</Text>
+                <Text style={styles.demoCreds}>{u.username} / {u.password} · {u.role}</Text>
+              </View>
+              <Text style={{ color: '#3F51B5', fontSize: 22 }}>›</Text>
+            </TouchableOpacity>
+          ))}
+        </Animated.View>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -118,7 +139,8 @@ const styles = StyleSheet.create({
   logoCircle: {
     width: 86, height: 86, borderRadius: 43, backgroundColor: '#3F51B5',
     justifyContent: 'center', alignItems: 'center', marginBottom: 14,
-    shadowColor: '#3F51B5', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 14, elevation: 8,
+    shadowColor: '#3F51B5', shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3, shadowRadius: 14, elevation: 8,
   },
   logoEmoji: { fontSize: 42 },
   appName: { fontSize: 30, fontWeight: '800', color: '#1A1A2E' },

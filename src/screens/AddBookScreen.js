@@ -1,5 +1,8 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Alert } from 'react-native';
+import React, { useState, useRef, useEffect } from 'react';
+import {
+  View, Text, TextInput, TouchableOpacity,
+  ScrollView, StyleSheet, Alert, Animated,
+} from 'react-native';
 import Slider from '@react-native-community/slider';
 import { useBooksStore }    from '../store/useBooksStore';
 import { useSettingsStore } from '../store/useSettingsStore';
@@ -8,7 +11,7 @@ const GENRES = ['Роман', 'Поезія', 'Повість', 'Оповіда�
 
 export default function AddBookScreen({ navigation }) {
   const { addBook, sessionOnly } = useBooksStore();
-  const isDark = useSettingsStore(s => s.isDark);
+  const { isDark } = useSettingsStore();
 
   const theme = {
     bg: isDark ? '#0D0D0D' : '#F0F2F5', card: isDark ? '#1C1C1E' : '#FFFFFF',
@@ -16,15 +19,31 @@ export default function AddBookScreen({ navigation }) {
     border: isDark ? '#444' : '#E0E0E0', primary: '#3F51B5',
   };
 
-  const [title, setTitle]       = useState('');
-  const [author, setAuthor]     = useState('');
-  const [desc, setDesc]         = useState('');
-  const [year, setYear]         = useState(2020);
-  const [rating, setRating]     = useState(4);
-  const [genre, setGenre]       = useState('Роман');
-  const [errors, setErrors]     = useState({});
+  const [title, setTitle]   = useState('');
+  const [author, setAuthor] = useState('');
+  const [desc, setDesc]     = useState('');
+  const [year, setYear]     = useState(2020);
+  const [rating, setRating] = useState(4);
+  const [genre, setGenre]   = useState('Роман');
+  const [errors, setErrors] = useState({});
+
+  // Анімація появи форми
+  const formAnim = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.spring(formAnim, { toValue: 1, tension: 50, friction: 8, useNativeDriver: true }).start();
+  }, []);
+
+  // Анімація кнопки додавання
+  const btnScale = useRef(new Animated.Value(1)).current;
+  const animateBtn = () => {
+    Animated.sequence([
+      Animated.timing(btnScale, { toValue: 0.94, duration: 80, useNativeDriver: true }),
+      Animated.spring(btnScale, { toValue: 1, useNativeDriver: true }),
+    ]).start();
+  };
 
   const handleAdd = async () => {
+    animateBtn();
     const e = {};
     if (!title.trim())  e.title  = "Обов'язкове поле";
     if (!author.trim()) e.author = "Обов'язкове поле";
@@ -37,9 +56,8 @@ export default function AddBookScreen({ navigation }) {
       genre, cover: `https://picsum.photos/150/200?random=${Date.now() % 200}`,
     });
 
-    Alert.alert(
-      '✅ Додано!',
-      sessionOnly ? `"${title}" додано (тільки сесія — не збережено)` : `"${title}" збережено`,
+    Alert.alert('✅ Додано!',
+      sessionOnly ? `"${title}" додано (тільки сесія)` : `"${title}" збережено`,
       [{ text: 'OK', onPress: () => navigation.navigate('Catalog') }]
     );
   };
@@ -47,63 +65,94 @@ export default function AddBookScreen({ navigation }) {
   const inputStyle = [styles.input, { backgroundColor: theme.card, borderColor: theme.border, color: theme.text }];
 
   return (
-    <ScrollView style={{ backgroundColor: theme.bg }} contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
+    <Animated.View style={[
+      { flex: 1, backgroundColor: theme.bg },
+      { opacity: formAnim, transform: [{ translateY: formAnim.interpolate({ inputRange: [0,1], outputRange: [30, 0] }) }] }
+    ]}>
+      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
 
-      {sessionOnly && (
-        <View style={styles.sessionBanner}>
-          <Text style={styles.sessionText}>⚡ Режим сесії — книга не збережеться після перезапуску</Text>
+        {sessionOnly && (
+          <View style={styles.sessionBanner}>
+            <Text style={styles.sessionText}>⚡ Режим сесії — не збережеться після перезапуску</Text>
+          </View>
+        )}
+
+        {[
+          { label: 'Назва *', key: 'title', value: title, set: setTitle, ph: 'Наприклад: Кобзар' },
+          { label: 'Автор *', key: 'author', value: author, set: setAuthor, ph: 'Наприклад: Т. Шевченко' },
+        ].map(f => (
+          <View key={f.key} style={styles.field}>
+            <Text style={[styles.label, { color: theme.text }]}>{f.label}</Text>
+            <TextInput
+              style={[inputStyle, errors[f.key] && { borderColor: '#E53935' }]}
+              value={f.value}
+              onChangeText={t => { f.set(t); setErrors(e => ({ ...e, [f.key]: '' })); }}
+              placeholder={f.ph} placeholderTextColor={theme.subtext}
+            />
+            {errors[f.key] ? <Text style={styles.errText}>{errors[f.key]}</Text> : null}
+          </View>
+        ))}
+
+        <View style={styles.field}>
+          <Text style={[styles.label, { color: theme.text }]}>Опис</Text>
+          <TextInput
+            style={[inputStyle, { height: 90, textAlignVertical: 'top' }]}
+            value={desc} onChangeText={setDesc}
+            placeholder="Декілька речень..." placeholderTextColor={theme.subtext}
+            multiline numberOfLines={3}
+          />
         </View>
-      )}
 
-      {[
-        { label: 'Назва *', key: 'title', value: title, set: setTitle, ph: 'Наприклад: Кобзар' },
-        { label: 'Автор *', key: 'author', value: author, set: setAuthor, ph: 'Наприклад: Тарас Шевченко' },
-      ].map(f => (
-        <View key={f.key} style={styles.field}>
-          <Text style={[styles.label, { color: theme.text }]}>{f.label}</Text>
-          <TextInput style={[inputStyle, errors[f.key] && { borderColor: '#E53935' }]}
-            value={f.value} onChangeText={t => { f.set(t); setErrors(e => ({ ...e, [f.key]: '' })); }}
-            placeholder={f.ph} placeholderTextColor={theme.subtext} />
-          {errors[f.key] ? <Text style={styles.errText}>{errors[f.key]}</Text> : null}
+        <View style={styles.field}>
+          <Text style={[styles.label, { color: theme.text }]}>Жанр</Text>
+          <View style={styles.genreRow}>
+            {GENRES.map(g => {
+              const chipScale = useRef(new Animated.Value(1)).current;
+              return (
+                <Animated.View key={g} style={{ transform: [{ scale: chipScale }] }}>
+                  <TouchableOpacity
+                    style={[styles.chip, { borderColor: theme.primary }, genre === g && { backgroundColor: theme.primary }]}
+                    onPress={() => {
+                      Animated.sequence([
+                        Animated.timing(chipScale, { toValue: 0.88, duration: 80, useNativeDriver: true }),
+                        Animated.spring(chipScale, { toValue: 1, useNativeDriver: true }),
+                      ]).start();
+                      setGenre(g);
+                    }}
+                  >
+                    <Text style={[styles.chipText, { color: genre === g ? '#fff' : theme.primary }]}>{g}</Text>
+                  </TouchableOpacity>
+                </Animated.View>
+              );
+            })}
+          </View>
         </View>
-      ))}
 
-      <View style={styles.field}>
-        <Text style={[styles.label, { color: theme.text }]}>Опис</Text>
-        <TextInput style={[inputStyle, { height: 90, textAlignVertical: 'top' }]}
-          value={desc} onChangeText={setDesc} placeholder="Декілька речень про книгу..."
-          placeholderTextColor={theme.subtext} multiline numberOfLines={3} />
-      </View>
-
-      <View style={styles.field}>
-        <Text style={[styles.label, { color: theme.text }]}>Жанр</Text>
-        <View style={styles.genreRow}>
-          {GENRES.map(g => (
-            <TouchableOpacity key={g}
-              style={[styles.chip, { borderColor: theme.primary }, genre === g && { backgroundColor: theme.primary }]}
-              onPress={() => setGenre(g)}>
-              <Text style={[styles.chipText, { color: genre === g ? '#fff' : theme.primary }]}>{g}</Text>
-            </TouchableOpacity>
-          ))}
+        <View style={styles.field}>
+          <Text style={[styles.label, { color: theme.text }]}>
+            Рік: <Text style={{ color: theme.primary, fontWeight: '700' }}>{Math.round(year)}</Text>
+          </Text>
+          <Slider style={{ width: '100%', height: 36 }} minimumValue={1800} maximumValue={2024} step={1}
+            value={year} onValueChange={setYear}
+            minimumTrackTintColor={theme.primary} maximumTrackTintColor={theme.border} thumbTintColor={theme.primary} />
         </View>
-      </View>
 
-      <View style={styles.field}>
-        <Text style={[styles.label, { color: theme.text }]}>Рік: <Text style={{ color: theme.primary, fontWeight: '700' }}>{Math.round(year)}</Text></Text>
-        <Slider style={{ width: '100%', height: 36 }} minimumValue={1800} maximumValue={2024} step={1}
-          value={year} onValueChange={setYear} minimumTrackTintColor={theme.primary} maximumTrackTintColor={theme.border} thumbTintColor={theme.primary} />
-      </View>
+        <View style={styles.field}>
+          <Text style={[styles.label, { color: theme.text }]}>
+            Рейтинг: <Text style={{ color: '#F4A836', fontWeight: '700' }}>{'⭐'.repeat(Math.round(rating))} ({Math.round(rating * 10) / 10})</Text>
+          </Text>
+          <Slider style={{ width: '100%', height: 36 }} minimumValue={1} maximumValue={5} step={0.5}
+            value={rating} onValueChange={setRating}
+            minimumTrackTintColor="#F4A836" maximumTrackTintColor={theme.border} thumbTintColor="#F4A836" />
+        </View>
 
-      <View style={styles.field}>
-        <Text style={[styles.label, { color: theme.text }]}>Рейтинг: <Text style={{ color: '#F4A836', fontWeight: '700' }}>{'⭐'.repeat(Math.round(rating))} ({Math.round(rating * 10) / 10})</Text></Text>
-        <Slider style={{ width: '100%', height: 36 }} minimumValue={1} maximumValue={5} step={0.5}
-          value={rating} onValueChange={setRating} minimumTrackTintColor="#F4A836" maximumTrackTintColor={theme.border} thumbTintColor="#F4A836" />
-      </View>
-
-      <TouchableOpacity style={[styles.addBtn, { backgroundColor: theme.primary }]} onPress={handleAdd}>
-        <Text style={styles.addBtnText}>➕ Додати до каталогу</Text>
-      </TouchableOpacity>
-    </ScrollView>
+        <Animated.View style={{ transform: [{ scale: btnScale }] }}>
+          <TouchableOpacity style={[styles.addBtn, { backgroundColor: theme.primary }]} onPress={handleAdd}>
+            <Text style={styles.addBtnText}>➕ Додати до каталогу</Text>
+          </TouchableOpacity>
+        </Animated.View>
+      </ScrollView>
+    </Animated.View>
   );
 }
 
